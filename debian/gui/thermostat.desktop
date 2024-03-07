@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0.0
+Name=thermostat
+GenericName=thermostat
+Comment=A thermostat app
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=Flutter;
+Icon=thermostat

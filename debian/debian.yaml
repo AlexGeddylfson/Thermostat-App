@@ -1,0 +1,17 @@
+flutter_app: 
+  command: thermostat
+  arch: x64
+  parent: /usr/local/lib
+  nonInteractive: false
+
+control:
+  Package: thermostat
+  Version: 1.0.0
+  Architecture: amd64
+  Priority: optional
+  Depends:
+  Maintainer:
+  Description: A thermostat app
+  
+#options:
+#  exec_out_dir: debian/packages

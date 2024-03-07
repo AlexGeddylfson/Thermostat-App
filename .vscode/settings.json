@@ -1,0 +1,10 @@
+{
+    "dart.flutterSdkPath": "/home/stephen/flutter",
+    "dart.flutterSdkPaths": ["/home/stephen/flutter"],
+    "dart.env": {
+      "TARGET_ARCH": "arm",
+      "TARGET_DEVICE": "arm",
+      "PATH": "/home/stephen/flutter/bin/cache/dart-sdk/bin:~/flutter/bin:$PATH"
+    }
+  }
+  
