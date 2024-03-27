@@ -1,7 +1,7 @@
 name: thermostat
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.1.0
+version: 0.1.1
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -12,6 +12,7 @@ dependencies:
   http: ^1.2.1  # Add this line to include the http package
   shared_preferences: ^2.0.10
   collection: ^1.15.0
+  intl: ^0.17.0 
   
   
 

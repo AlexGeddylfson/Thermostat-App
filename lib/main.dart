@@ -4,6 +4,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import 'package:thermostat/previous_states_screen.dart' as PreviousStatesScreen; // Import with alias
+import 'historical_temperatures_screen.dart' as HistoricalTemperaturesScreen;
+
 
 
 
@@ -35,7 +38,6 @@ void main() {
 
 class MyApp extends StatelessWidget {
   // Remove the static GlobalKey
-  static String appName = '';
   static ThemeMode currentThemeMode = ThemeMode.system;
 
   static setThemeMode(ThemeMode newThemeMode) {
@@ -43,24 +45,70 @@ class MyApp extends StatelessWidget {
     runApp(MyApp()); // Re-run the app to apply the new theme
   }
 
-  static setAppName(String newName) {
-    appName = newName;
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      // Remove navigatorKey
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: currentThemeMode,
+      home: MyHomePage(),
+    );
   }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  int _currentIndex = 0;
+
+  final List<Widget> _screens = [
+    SensorTemperaturePage(), // Main thermostat screen
+    PreviousStatesScreen.PreviousStatesScreen(), // Previous states screen using the alias
+    HistoricalTemperaturesScreen.HistoricalTemperaturesScreen(), // Historical temperatures screen
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _screens[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.thermostat),
+            label: 'Thermostat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'Previous States',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.show_chart),
+            label: 'Historical Temperatures',
+          ),
+        ],
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       // Remove navigatorKey
-      title: appName,
       theme: ThemeData.light(),
       darkTheme: ThemeData.dark(),
-      themeMode: currentThemeMode,
       home: Center(
         child: SensorTemperaturePage(),
       ),
     );
   }
-}
+
 
 class SensorTemperaturePage extends StatefulWidget {
   @override
@@ -81,36 +129,47 @@ class _SensorTemperaturePageState extends State<SensorTemperaturePage> {
     checkAndSetUpSettings();
   }
 
-  Future<void> checkAndSetUpSettings() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+Future<void> checkAndSetUpSettings() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    // Check if initial setup is completed
-    bool initialSetupComplete = prefs.getBool('initialSetupComplete') ?? false;
+  // Check if initial setup is completed
+  bool initialSetupComplete = prefs.getBool('initialSetupComplete') ?? false;
 
-    if (!initialSetupComplete) {
-      // If initial setup is not complete, prompt the user for setup
-      await setUpInitialSettingsDialog(context);
-    }
-
-    // Load settings before initializing the rest of the state
-    loadSettings().then((_) {
-      // Fetch user set temperature, thermostat state, and temperatures
-      fetchUserSetTemperature();
-      fetchThermostatState();
-      fetchTemperatures();
-
-      // Start polling temperatures every 20 seconds
-      temperaturePollingTimer =
-          Timer.periodic(Duration(seconds: 20), (Timer timer) {
-        fetchTemperatures();
-        fetchUserSetTemperature();
-        fetchThermostatState();
-
-        // Trigger a rebuild to update UI
-        setState(() {});
-      });
-    });
+  if (!initialSetupComplete) {
+    // If initial setup is not complete, prompt the user for setup
+    await setUpInitialSettingsDialog(context);
   }
+
+  // Load settings before initializing the rest of the state
+  await loadSettings();
+
+  // Fetch initial data
+  fetchInitialData();
+
+  // Start polling temperatures every 20 seconds
+  temperaturePollingTimer = Timer.periodic(Duration(seconds: 20), (Timer timer) {
+    fetchTemperatures();
+    fetchUserSetTemperature();
+    fetchThermostatState();
+
+    // Trigger a rebuild to update UI
+    setState(() {});
+  });
+}
+
+Future<void> fetchInitialData() async {
+  try {
+    await Future.wait([
+      fetchUserSetTemperature(),
+      fetchThermostatState(),
+      fetchTemperatures(),
+    ]);
+  } catch (error) {
+    // Handle error
+    print('Error fetching initial data: $error');
+  }
+}
+
 
   Future<void> setUpInitialSettingsDialog(BuildContext context) async {
     TextEditingController serverApiUrlController = TextEditingController();
@@ -312,7 +371,6 @@ class _SensorTemperaturePageState extends State<SensorTemperaturePage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text(MyApp.appName), // Use dynamic app name
           actions: [
             IconButton(
               icon: Icon(Icons.settings),
@@ -384,7 +442,7 @@ class _SensorTemperaturePageState extends State<SensorTemperaturePage> {
                   SizedBox(height: 20),
                   Text(
                     'Thermostat State: $thermostatState',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 20),
                   Row(
@@ -708,7 +766,6 @@ class _SensorTemperaturePageState extends State<SensorTemperaturePage> {
     prefs.setInt('numberOfSensors', AppConfig.numberOfSensors);
     prefs.setString('serverApiUrl', AppConfig.serverApiUrl);
     prefs.setString('darkMode', MyApp.currentThemeMode.toString());
-    prefs.setString('appName', MyApp.appName); // Save the app name
 
     for (int i = 0; i < AppConfig.numberOfSensors; i++) {
       prefs.setString('apiUrl$i', AppConfig.apiUrlList[i]);
@@ -757,7 +814,6 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     numberOfSensorsController.text = AppConfig.numberOfSensors.toString();
     serverApiUrlController.text = AppConfig.serverApiUrl;
-    appNameController.text = MyApp.appName;
     darkModeController.text = MyApp.currentThemeMode.toString();
 
     for (int i = 0; i < AppConfig.numberOfSensors; i++) {
@@ -796,13 +852,6 @@ class _SettingsPageState extends State<SettingsPage> {
               controller: serverApiUrlController,
             ),
             SizedBox(height: 8),
-            Text(
-              'App Name',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            TextField(
-              controller: appNameController,
-            ),
             SizedBox(height: 16),
             for (int i = 0; i < AppConfig.numberOfSensors; i++)
               Column(
